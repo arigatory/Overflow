@@ -13,10 +13,21 @@ var postgres = builder.AddPostgres("postgres", port: 5432)
 
 var questionDb = postgres.AddDatabase("questiondb");
 
+var typesense = builder.AddContainer("typesense", "typesense/typesense", "29.0")
+    .WithArgs("--data-dir", "/data", "--api-key", "xyz", "--enable-cors")
+    .WithVolume("typesense_data", "/data")
+    .WithHttpEndpoint(8108, 8108, name: "typesense");
+
+var typesenseContainer = typesense.GetEndpoint("typesense");
+
 var questionService = builder.AddProject<Projects.QuestionService>("question-svc")
     .WithReference(keycloak)
     .WithReference(questionDb)
     .WaitFor(keycloak)
     .WaitFor(questionDb);
+
+var searchService = builder.AddProject<Projects.SearchService>("search-svc")
+    .WithReference(typesenseContainer)
+    .WaitFor(typesense);
 
 builder.Build().Run();
