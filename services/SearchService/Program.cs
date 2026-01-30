@@ -1,4 +1,6 @@
+using System.Text.RegularExpressions;
 using SearchService.Data;
+using SearchService.Models;
 using Typesense;
 using Typesense.Setup;
 
@@ -40,6 +42,35 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapDefaultEndpoints();
+
+app.MapGet("/search", async (string query, ITypesenseClient client) =>
+{
+    // [aspire]something
+    string? tag = null;
+    var tagMatch = Regex.Match(query, @"\[(.*?)\]");
+    if (tagMatch.Success)
+    {
+        tag = tagMatch.Groups[1].Value;
+        query = query.Replace(tagMatch.Value, "").Trim();
+    }
+
+    var searchParameters = new SearchParameters(query, "title,content");
+
+    if (!string.IsNullOrEmpty(tag))
+    {
+        searchParameters.FilterBy = $"tags:=[{tag}]";
+    }
+
+    try
+    {
+        var result = await client.Search<SearchQuestion>("questions", searchParameters);
+        return Results.Ok(result.Hits.Select(hit => hit.Document));
+    }
+    catch (Exception e)
+    {
+        return Results.Problem("Typesense search failed", e.Message);
+    }
+});
 
 using var scope = app.Services.CreateScope();
 var client = scope.ServiceProvider.GetRequiredService<ITypesenseClient>();
