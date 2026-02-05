@@ -1,8 +1,12 @@
 using System.Text.RegularExpressions;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using SearchService.Data;
 using SearchService.Models;
 using Typesense;
 using Typesense.Setup;
+using Wolverine;
+using Wolverine.RabbitMQ;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +14,26 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.AddServiceDefaults();
+
+
+
+builder.Services.AddOpenTelemetry().WithTracing(traceProviderBuilder =>
+{
+    traceProviderBuilder
+        .SetResourceBuilder(ResourceBuilder.CreateDefault()
+            .AddService(builder.Environment.ApplicationName))
+        .AddSource("Wolverine");
+});
+
+builder.Host.UseWolverine(opts =>
+{
+    opts.UseRabbitMqUsingNamedConnection("messaging").AutoProvision();
+    opts.ListenToRabbitQueue("questions.search", cfg =>
+    {
+        cfg.BindExchange("questions");
+    });
+});
+
 
 var typesenseUri = builder.Configuration["services:typesense:typesense:0"];
 if (string.IsNullOrEmpty(typesenseUri))
@@ -33,6 +57,8 @@ builder.Services.AddTypesenseClient(options =>
         new(uri.Host, uri.Port.ToString(), uri.Scheme)
     ];
 });
+
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
