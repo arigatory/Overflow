@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/common/">
+    <Project Path="common/Contracts/Contracts.csproj" />
+  </Folder>
   <Folder Name="/services/">
     <Project Path="services/QuestionService/QuestionService.csproj" />
     <Project Path="services/SearchService/SearchService.csproj" />

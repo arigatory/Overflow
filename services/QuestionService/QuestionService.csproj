@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../common/Contracts/Contracts.csproj" />
     <ProjectReference Include="../../Overflow.ServiceDefaults/Overflow.ServiceDefaults.csproj" />
   </ItemGroup>
 
